@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8"><title>SchoolCare</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root{--bg1:#e8f0ff;--bg2:#e9fbf1;--tx:#1d1d1f;--mu:#6e6e73;--gl:rgba(255,255,255,.55);--bd:rgba(255,255,255,.8);--ac:#0071e3;--ac2:#30d158;--sh:0 8px 32px rgba(0,0,0,.08);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg1:#0b1020;--bg2:#0a1f17;--tx:#f5f5f7;--mu:#a1a1a6;--gl:rgba(40,40,48,.55);--bd:rgba(255,255,255,.14);--sh:0 8px 32px rgba(0,0,0,.4)}}
+:root[data-theme=dark]{--bg1:#0b1020;--bg2:#0a1f17;--tx:#f5f5f7;--mu:#a1a1a6;--gl:rgba(40,40,48,.55);--bd:rgba(255,255,255,.14);--sh:0 8px 32px rgba(0,0,0,.4)}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,sans-serif;color:var(--tx);background:linear-gradient(135deg,var(--bg1),var(--bg2));background-attachment:fixed;min-height:100vh}
+body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 15% 20%,rgba(0,113,227,.25),transparent 40%),radial-gradient(circle at 85% 75%,rgba(48,209,88,.25),transparent 40%);animation:fl 14s ease-in-out infinite alternate;z-index:-1}
+@keyframes fl{to{transform:scale(1.15) translate(2%,-2%)}}
+@keyframes up{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes sh{to{background-position:-200% 0}}
+main{max-width:920px;margin:0 auto;padding:16px;animation:up .5s ease}
+.glass{background:var(--gl);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);border:1px solid var(--bd);border-radius:24px;box-shadow:var(--sh),inset 0 1px 0 rgba(255,255,255,.5);padding:20px;margin-bottom:14px}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;gap:8px;align-items:center;justify-content:space-between;padding:10px 14px;margin:10px auto;max-width:920px;border-radius:22px}
+h1,h2{margin:0 0 10px;letter-spacing:-.02em}h1{font-size:clamp(28px,6vw,44px);background:linear-gradient(90deg,var(--ac),var(--ac2));-webkit-background-clip:text;background-clip:text;color:transparent}
+p,small{color:var(--mu)}
+button,.btn{font:inherit;border:0;border-radius:980px;padding:11px 20px;color:#fff;background:linear-gradient(135deg,var(--ac),#5e5ce6);cursor:pointer;transition:transform .15s,box-shadow .2s;box-shadow:0 4px 14px rgba(0,113,227,.35);display:inline-block;text-decoration:none}
+button:active,.btn:active{transform:scale(.94)}button:hover{box-shadow:0 6px 20px rgba(0,113,227,.5)}
+button.g{background:var(--gl);color:var(--tx);box-shadow:none;border:1px solid var(--bd)}button.ok{background:linear-gradient(135deg,#30d158,#12a150)}button.no{background:linear-gradient(135deg,#ff453a,#c9302c)}
+input,select,textarea{font:inherit;width:100%;padding:12px 14px;margin:6px 0;border-radius:14px;border:1px solid var(--bd);background:var(--gl);color:var(--tx);outline:none}
+input:focus,textarea:focus{border-color:var(--ac)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.card{cursor:pointer;transition:transform .25s,box-shadow .25s}.card:hover{transform:translateY(-6px)}.card:active{transform:scale(.96)}
+.card .i{font-size:36px}
+.sk{height:70px;border-radius:18px;margin-bottom:12px;background:linear-gradient(90deg,var(--gl) 25%,rgba(255,255,255,.5) 50%,var(--gl) 75%);background-size:200% 100%;animation:sh 1.3s infinite}
+.tag{font-size:12px;padding:3px 10px;border-radius:99px;background:rgba(0,113,227,.15);color:var(--ac);margin-right:6px}.tag.r{background:rgba(255,69,58,.15);color:#ff453a}.tag.g{background:rgba(48,209,88,.18);color:#1a9a42}
+img.th{max-width:100%;max-height:220px;border-radius:16px;margin-top:8px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.c{text-align:center}
+.big{font-size:56px;font-variant-numeric:tabular-nums;letter-spacing:6px}
+</style></head><body>
+<div id="app"></div>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ADMIN={u:"atmin",p:"123123"};
+let db=null,sample=null,S={users:{},reports:[],resets:[],ready:false},me=null,view="",busy=false,aiRes=null,pend={};
+try{me=JSON.parse(localStorage.getItem("sc_me")||"null")}catch(e){}
+try{const t=localStorage.getItem("sc_th");if(t)document.documentElement.dataset.theme=t}catch(e){}
+const save=()=>{try{me?localStorage.setItem("sc_me",JSON.stringify(me)):localStorage.removeItem("sc_me")}catch(e){}};
+const isStaff=()=>me&&(me.role==="admin"||me.role==="guru");
+const rid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const fmt=t=>new Date(t).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"});
+
+async function init(){
+  try{
+    const c=window.claude;db=await c.use("db");sample=await c.use("sample");
+    if(db){
+      const sub=(n,k,fn)=>db.collection(n).onSnapshot(s=>{S[k]=fn(s.docs.map(d=>({id:d.id,...d.data()})));S.ready=true;render()},()=>{S.ready=true;render()});
+      sub("users","users",a=>Object.fromEntries(a.map(x=>[x.id,x])));
+      sub("reports","reports",a=>a.sort((x,y)=>y.ts-x.ts));
+      sub("resets","resets",a=>a);
+    }else S.ready=true;
+  }catch(e){S.ready=true}
+  render();
+}
+window.addEventListener("hashchange",render);
+
+function go(v){location.hash=v}
+function render(){
+  view=(location.hash||"").slice(1)||"home";
+  if(!me&&!["login","daftar","lupa"].includes(view))view="login";
+  if(me&&["login","daftar"].includes(view))view="home";
+  if(["admin"].includes(view)&&!isStaff())view="home";
+  const pages={login,daftar,lupa,home,lapor,pantau,deteksi,setelan,admin};
+  const f=active();if(f)return; // jangan render ulang saat mengetik
+  $("#app").innerHTML=(me?navbar():"")+"<main>"+(S.ready?(pages[view]||home)():sk())+"</main>";
+}
+function active(){const a=document.activeElement;return a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.type!=="file"&&$("#app").contains(a)}
+const sk=()=>'<div class="sk"></div>'.repeat(4);
+function navbar(){return `<nav class="glass"><b onclick="go('home')" style="cursor:pointer">🌿 SchoolCare</b><div class="row"><small>${esc(me.name)} · ${me.role}</small><button class="g" onclick="go('home')">Beranda</button><button class="g" onclick="logout()">Keluar</button></div></nav>`}
+function logout(){me=null;save();go("login");render()}
+const dbWarn=()=>db?"":`<div class="glass">⚠️ Penyimpanan bersama belum aktif. Buka website ini lewat tautan yang dibagikan dan pastikan Anda sudah masuk.</div>`;
+
+/* ---------- AUTH ---------- */
+function login(){return `<div style="max-width:420px;margin:8vh auto 0"><div class="glass c"><h1>SchoolCare</h1><p>Laporkan sampah &amp; jaga sekolah tetap bersih.</p>
+<input id="u" placeholder="Username" autocomplete="username"><input id="p" type="password" placeholder="Password" autocomplete="current-password">
+<div id="msg" style="color:#ff453a;min-height:20px"></div>
+<button onclick="doLogin()" style="width:100%">Masuk</button>
+<div class="row" style="justify-content:center;margin-top:12px"><button class="g" onclick="go('daftar')">Buat akun</button><button class="g" onclick="anon()">Akun anonim</button></div>
+<p><a href="#lupa" style="color:var(--ac)">Lupa password?</a></p></div>${dbWarn()}</div>`}
+function doLogin(){
+  const u=$("#u").value.trim().toLowerCase(),p=$("#p").value;
+  if(u===ADMIN.u&&p===ADMIN.p){me={u,name:"Admin",role:"admin"};save();return go("home"),render()}
+  const x=S.users[u];
+  if(!x||x.pw!==p){$("#msg").textContent="Username atau password salah.";return}
+  me={u,name:x.name,role:x.role};save();go("home");render();
+}
+function anon(){me={u:"anon-"+rid(),name:"Anonim",role:"murid",anon:true};save();go("home");render()}
+function daftar(){return `<div style="max-width:420px;margin:6vh auto 0"><div class="glass"><h2>Buat Akun</h2>
+<input id="n" placeholder="Nama lengkap"><input id="u" placeholder="Username"><input id="p" type="password" placeholder="Password (min. 4 karakter)">
+<select id="r"><option value="murid">Murid</option><option value="guru">Guru</option></select>
+<div id="msg" style="color:#ff453a;min-height:20px"></div>
+<div class="row"><button onclick="doReg()">Daftar</button><button class="g" onclick="go('login')">Kembali</button></div></div>${dbWarn()}</div>`}
+async function doReg(){
+  const n=$("#n").value.trim(),u=$("#u").value.trim().toLowerCase(),p=$("#p").value,r=$("#r").value,m=$("#msg");
+  if(!n||!/^[a-z0-9_.]{3,}$/.test(u)||p.length<4){m.textContent="Isi semua data. Username min. 3 huruf/angka tanpa spasi.";return}
+  if(u===ADMIN.u||S.users[u]){m.textContent="Username sudah dipakai.";return}
+  if(!db){m.textContent="Penyimpanan belum aktif.";return}
+  try{await db.doc("users/"+u).set({name:n,pw:p,role:r,ts:Date.now()});me={u,name:n,role:r};save();go("home");render()}catch(e){m.textContent="Gagal mendaftar: "+(e.message||e.code)}
+}
+
+/* ---------- RESET PASSWORD ---------- */
+function lupa(){const q=pend.code;return `<div style="max-width:440px;margin:6vh auto 0"><div class="glass"><h2>Reset Password</h2>
+<input id="u" placeholder="Username Anda" value="${esc(pend.u||"")}">
+<button onclick="reqCode()" style="width:100%">Tekan ini untuk mendapatkan kode</button>
+<p>${q?"Permintaan terkirim. Minta kode 6 angka kepada "+(pend.role==="guru"?"admin":"guru atau admin")+", lalu isi di bawah.":"Kode akan muncul di daftar permintaan milik "+"admin/guru, bukan di layar ini."}</p>
+<input id="k" inputmode="numeric" maxlength="6" placeholder="Kode 6 angka"><input id="p" type="password" placeholder="Password baru">
+<div id="msg" style="min-height:20px;color:#ff453a"></div>
+<div class="row"><button class="ok" onclick="doReset()">Ganti password</button><button class="g" onclick="go('${me?"setelan":"login"}')">Kembali</button></div></div></div>`}
+async function reqCode(){
+  const u=$("#u").value.trim().toLowerCase(),m=$("#msg");
+  const x=S.users[u];if(!x||u===ADMIN.u){m.textContent="Akun tidak ditemukan.";return}
+  let c,used=new Set(S.resets.map(r=>r.code));do{c=String(Math.floor(100000+Math.random()*900000))}while(used.has(c));
+  try{await db.doc("resets/"+u).set({u,name:x.name,role:x.role,code:c,ts:Date.now()});pend={u,code:1,role:x.role};active()||0;document.activeElement.blur();render()}catch(e){m.textContent="Gagal: "+(e.message||e.code)}
+}
+async function doReset(){
+  const u=$("#u").value.trim().toLowerCase(),k=$("#k").value.trim(),p=$("#p").value,m=$("#msg");
+  const r=S.resets.find(x=>x.u===u);
+  if(!r||r.code!==k){m.textContent="Kode salah atau belum diminta.";return}
+  if(p.length<4){m.textContent="Password min. 4 karakter.";return}
+  try{await db.doc("users/"+u).update({pw:p});await db.doc("resets/"+u).delete();pend={};alert("Password berhasil diganti. Silakan masuk.");logout()}catch(e){m.textContent="Gagal: "+(e.message||e.code)}
+}
+
+/* ---------- BERANDA ---------- */
+function home(){
+  const c=(h,i,t,d)=>`<div class="glass card" onclick="go('${h}')"><div class="i">${i}</div><h2>${t}</h2><p>${d}</p></div>`;
+  const open=S.reports.filter(r=>!r.done&&(r.type==="sampah"||isStaff())).length;
+  return `<h1>Halo, ${esc(me.name)} 👋</h1><p>Ada ${open} laporan yang menunggu ditangani.</p><div class="grid">
+${c("lapor","📸","Lapor Sampah &amp; Oknum","Foto lokasi, tulis detail, kirim.")}${c("pantau","📋","Pantauan Laporan","Lihat semua laporan terbaru.")}${c("deteksi","🤖","Deteksi Jenis Sampah","AI mengenali sampah dan cara membuangnya.")}${c("setelan","⚙️","Pengaturan","Tema &amp; password.")}${isStaff()?c("admin","🛡️",me.role==="admin"?"Panel Admin":"Panel Guru","Reset password"+(me.role==="admin"?" &amp; kelola akun.":" murid.")):""}</div>`;
+}
+
+/* ---------- FOTO ---------- */
+function photoPicker(id){return `<div class="row"><label class="btn g" style="background:var(--gl);color:var(--tx)">📷 Kamera<input type="file" accept="image/*" capture="environment" hidden onchange="pick(event,'${id}')"></label><label class="btn g" style="background:var(--gl);color:var(--tx)">🖼️ Galeri<input type="file" accept="image/*" hidden onchange="pick(event,'${id}')"></label></div><div id="${id}"></div>`}
+function shrink(file,max,q){return new Promise(res=>{const im=new Image();im.onload=()=>{const s=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*s;c.height=im.height*s;c.getContext("2d").drawImage(im,0,0,c.width,c.height);c.toBlob(b=>{const r=new FileReader();r.onload=()=>res({blob:b,url:r.result});r.readAsDataURL(b)},"image/jpeg",q)};im.src=URL.createObjectURL(file)})}
+async function pick(e,id){const f=e.target.files[0];if(!f)return;pend[id]=await shrink(f,id==="ph1"?560:900,id==="ph1"?.6:.8);$("#"+id).innerHTML=`<img class="th" src="${pend[id].url}">`;if(id==="ph2")runAI()}
+
+/* ---------- LAPOR ---------- */
+function lapor(){return `<div class="glass"><h2>Lapor Sampah &amp; Oknum</h2>${dbWarn()}
+<select id="t"><option value="sampah">🗑️ Sampah di area sekolah (dilihat semua)</option><option value="oknum">🚯 Oknum buang sampah sembarangan (hanya guru &amp; admin)</option></select>
+<input id="l" placeholder="Lokasi (mis. kantin, lapangan)"><textarea id="d" rows="3" placeholder="Deskripsi singkat"></textarea>
+${photoPicker("ph1")}<div id="msg" style="min-height:20px;color:#ff453a"></div>
+<div class="row"><button class="ok" onclick="sendRep()">Kirim laporan</button><button class="g" onclick="go('home')">Kembali</button></div></div>`}
+async function sendRep(){
+  const l=$("#l").value.trim(),d=$("#d").value.trim(),m=$("#msg");
+  if(!l||!d){m.textContent="Lokasi dan deskripsi wajib diisi.";return}
+  if(!db){m.textContent="Penyimpanan belum aktif.";return}
+  const id=rid();
+  try{await db.doc("reports/"+id).set({type:$("#t").value,loc:l,desc:d,img:pend.ph1?.url||"",by:me.name,u:me.u,role:me.role,ts:Date.now(),done:false});pend.ph1=null;go("pantau")}catch(e){m.textContent="Gagal: "+(e.message||e.code)}
+}
+
+/* ---------- PANTAU ---------- */
+function pantau(){
+  const list=S.reports.filter(r=>r.type==="sampah"||isStaff()||r.u===me.u);
+  return `<div class="row" style="justify-content:space-between"><h2>Pantauan Laporan</h2><button class="g" onclick="go('lapor')">+ Laporan baru</button></div>
+${list.length?list.map(r=>`<div class="glass"><span class="tag ${r.type==="oknum"?"r":""}">${r.type==="oknum"?"Oknum":"Sampah"}</span><span class="tag ${r.done?"g":""}">${r.done?"Selesai":"Menunggu"}</span><b>${esc(r.loc)}</b>
+<p>${esc(r.desc)}</p>${r.img?`<img class="th" src="${r.img}">`:""}<small>Oleh ${esc(r.by)} (${r.role}) · ${fmt(r.ts)}</small>
+${isStaff()?`<div class="row" style="margin-top:10px">${r.done?"":`<button class="ok" onclick="done('${r.id}')">Tandai selesai</button>`}<button class="no" onclick="delRep('${r.id}')">Hapus</button></div>`:""}</div>`).join(""):'<div class="glass c"><p>Belum ada laporan.</p></div>'}`}
+async function done(id){if(isStaff())await db.doc("reports/"+id).update({done:true})}
+async function delRep(id){if(isStaff()&&confirm("Hapus laporan ini?"))await db.doc("reports/"+id).delete()}
+
+/* ---------- DETEKSI AI ---------- */
+function deteksi(){return `<div class="glass"><h2>Deteksi Jenis Sampah</h2><p>Ambil foto atau pilih dari galeri. AI akan mengenali jenisnya beberapa detik kemudian.</p>${photoPicker("ph2")}<div id="ai">${aiRes?aiHtml(aiRes):""}</div><button class="g" style="margin-top:12px" onclick="go('home')">Kembali</button></div>`}
+const aiHtml=r=>r.err?`<p style="color:#ff453a">${esc(r.err)}</p>`:`<div class="glass" style="margin-top:12px"><span class="tag g">${esc(r.golongan)}</span><span class="tag">${esc(r.jenis)}</span><h2>${esc(r.objek)}</h2><p><b>Buang di:</b> ${esc(r.tempat)}</p><p>💡 ${esc(r.edukasi)}</p></div>`;
+async function runAI(){
+  const box=$("#ai");aiRes=null;
+  if(!sample){box.innerHTML=aiHtml({err:"Fitur AI belum tersedia di tampilan ini."});return}
+  box.innerHTML=sk();
+  try{
+    const lim=await sample.limits();if(!lim.images)throw{message:"AI gambar tidak tersedia."};
+    const r=await sample.json(`Kamu pakar pemilahan sampah di sekolah Indonesia. Lihat foto, identifikasi OBJEK UTAMA secara teliti (plastik/PET/botol/kantong/styrofoam = anorganik, BUKAN organik; organik hanya sisa makanan, daun, kayu, kertas basah kotor makanan). Balas HANYA JSON: {"objek":"nama benda","golongan":"Organik|Anorganik|B3","jenis":"mis. Plastik, Kertas, Logam, Kaca, Sisa makanan, Baterai","tempat":"tempat sampah warna/jenis yang sesuai (hijau=organik, kuning=anorganik, merah=B3)","edukasi":"1-2 kalimat edukasi daur ulang, bahasa Indonesia"}`,{images:[pend.ph2.blob],modelTier:"default",cache:false});
+    aiRes=r;box.innerHTML=aiHtml(r);
+  }catch(e){aiRes={err:"Gagal mendeteksi: "+(e.message||e.code||"coba lagi")};box.innerHTML=aiHtml(aiRes)}
+}
+
+/* ---------- PENGATURAN ---------- */
+function setelan(){const t=document.documentElement.dataset.theme||"auto";return `<div class="glass"><h2>Pengaturan</h2><p>Tampilan</p><div class="row">${[["auto","Otomatis"],["light","Terang"],["dark","Gelap"]].map(([k,n])=>`<button class="${t===k?"":"g"}" onclick="theme('${k}')">${n}</button>`).join("")}</div>
+${me.anon?"":`<p style="margin-top:18px">Keamanan</p><button class="g" onclick="pend={u:'${esc(me.u)}'};go('lupa')">Reset password</button>`}
+<div style="margin-top:18px"><button class="g" onclick="go('home')">Kembali</button></div></div>`}
+function theme(k){const d=document.documentElement;k==="auto"?delete d.dataset.theme:d.dataset.theme=k;try{k==="auto"?localStorage.removeItem("sc_th"):localStorage.setItem("sc_th",k)}catch(e){}render()}
+
+/* ---------- ADMIN / GURU ---------- */
+function admin(){
+  const adm=me.role==="admin";
+  const rs=S.resets.filter(r=>adm||r.role==="murid").sort((a,b)=>b.ts-a.ts);
+  return `<div class="glass"><h2>Permintaan Reset Password</h2><p>${adm?"Guru &amp; murid":"Khusus murid"}. Berikan kode kepada pemilik akun.</p>
+${rs.length?rs.map(r=>`<div class="glass"><b>${esc(r.name)}</b> <span class="tag">${r.role}</span> <small>@${esc(r.u)} · ${fmt(r.ts)}</small><div class="big">${r.code}</div><button class="g" onclick="cancelReset('${r.u}')">Tolak</button></div>`).join(""):"<p>Tidak ada permintaan.</p>"}</div>
+${adm?`<div class="glass"><h2>Semua Akun (${Object.keys(S.users).length})</h2>${Object.entries(S.users).map(([u,x])=>`<div class="row" style="justify-content:space-between;padding:6px 0"><span>${esc(x.name)} <span class="tag">${x.role}</span> <small>@${esc(u)}</small></span><button class="no" onclick="delUser('${u}')">Hapus</button></div>`).join("")||"<p>Belum ada akun.</p>"}</div>`:""}
+<button class="g" onclick="go('home')">Kembali</button>`}
+async function cancelReset(u){await db.doc("resets/"+u).delete()}
+async function delUser(u){if(me.role==="admin"&&confirm("Hapus akun @"+u+"?")){await db.doc("users/"+u).delete();await db.doc("resets/"+u).delete().catch(()=>{})}}
+
+init();
+</script></body></html>
